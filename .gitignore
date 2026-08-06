@@ -28,3 +28,17 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Project build output ###
+/build/
+
+### WebDriver executables (placed manually per environment, not tracked) ###
+/webdrivers/*
+!/webdrivers/README.md
+
+/public/webdrivers/*
+!/public/webdrivers/README.md
+
+### Runtime logs ###
+/logs/*.log
+!/logs/.gitkeep
