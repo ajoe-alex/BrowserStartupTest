@@ -10,4 +10,13 @@ cd "$DIR"
 
 mkdir -p logs webdrivers
 
-java -jar BrowserStartupTest.jar
+# To run with a specific JDK instead of whatever "java" resolves to on PATH,
+# uncomment the line below and set it to that JDK's home directory:
+# JAVA_HOME="/path/to/jdk"
+
+JAVA_CMD="java"
+if [ -n "$JAVA_HOME" ]; then
+    JAVA_CMD="$JAVA_HOME/bin/java"
+fi
+
+"$JAVA_CMD" -jar BrowserStartupTest.jar

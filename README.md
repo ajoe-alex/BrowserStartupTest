@@ -10,14 +10,15 @@ dependencies are plain jars in `libs/`, auto-picked up by IntelliJ.
 src/Main.java           Entry point
 libs/                   Dependency jars (selenium-server-4.3.0.jar is a
                          shaded jar containing the full Selenium client)
-webdrivers/              Place chromedriver/geckodriver/msedgedriver here (dev)
+webdrivers/              Place chromedriver/geckodriver/msedgedriver here (dev);
+                         README.md documents the naming convention
 logs/                    Timestamped run logs + exception stack traces (dev)
 app.properties.json      Dev-time config read by src/Main.java
 run.sh / run.bat         Compile + run from source (dev)
 build.sh / build.bat     Build a distributable fat jar into build/browser_startup_test/
 public/                  Files shipped to clients — copied verbatim into the
                          build output by build.sh/build.bat (run.sh, run.bat,
-                         app.properties.json)
+                         app.properties.json, webdrivers/README.md)
 build/                   Generated output (gitignored); browser_startup_test/
                          holds the fat jar + everything from public/
 ```
@@ -68,8 +69,27 @@ Anything added to `public/` is copied into the build output automatically —
 no need to update the build scripts when adding new client-facing files.
 
 To hand off to a client: ship the `build/browser_startup_test/` folder. They
-edit `app.properties.json`, drop in the right driver executable, and run
-`run.sh`/`run.bat`. No JDK project setup or source required — only a JRE.
+edit `app.properties.json`, drop in the right driver executable (see
+`webdrivers/README.md` for naming), and run `run.sh`/`run.bat`. Only a JRE
+is required — no JDK, project setup, or source.
+
+By default `run.sh`/`run.bat` invoke whatever `java` resolves to on `PATH`.
+For corner cases where a specific JDK install must be used instead, both
+scripts have a commented-out line near the top to set it explicitly:
+
+```sh
+# run.sh
+# JAVA_HOME="/path/to/jdk"
+```
+
+```bat
+:: run.bat
+REM set "JAVA_HOME=C:\path\to\jdk"
+```
+
+Uncomment and point it at the desired JDK home; the script then runs
+`$JAVA_HOME/bin/java` (`%JAVA_HOME%\bin\java.exe` on Windows) instead of the
+`PATH` default.
 
 ## Notes
 
