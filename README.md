@@ -1,8 +1,9 @@
 # BrowserStartupTest
 
 Launches a browser to a configured URL via Selenium 4.3.0, keeps the session
-alive for a configured duration, then quits and cleans up. No Maven/Gradle —
-dependencies are plain jars in `libs/`, auto-picked up by IntelliJ.
+alive for a configured duration (or until closed early from a small on-screen
+control window), then quits and cleans up. No Maven/Gradle — dependencies are
+plain jars in `libs/`, auto-picked up by IntelliJ.
 
 ## Project layout
 
@@ -30,16 +31,109 @@ build/                   Generated output (gitignored); browser_startup_test/
   "url": "https://www.google.com",
   "browser": "chrome",
   "waitTimeInSeconds": 20,
-  "browser_binary_path": ""
+  "browser_binary_path": "",
+  "capabilities": null
 }
 ```
 
 - `url` — page to open.
 - `browser` — one of `chrome`, `firefox`, `edge`, `safari`.
-- `waitTimeInSeconds` — how long to keep the session open before quitting.
+- `waitTimeInSeconds` — max time to keep the session open before quitting
+  automatically. Can end sooner — see "Session control window" below.
 - `browser_binary_path` — optional. Path to a specific browser executable
   (e.g. a non-default Chrome install). Leave empty to use the system default.
   Not supported for `safari` (ignored with a warning if set).
+- `capabilities` — optional. `null`/absent is ignored. A free-form object
+  applied to the browser's Selenium `Options`/capabilities. Three ways to use it:
+  - **`args`** — a flat list of browser launch flags, routed through the
+    browser's own `addArguments(...)` (not supported for `safari`, which has
+    no launch-flag concept):
+    ```json
+    "capabilities": {
+      "args": ["--start-maximized", "--lang=en-US"]
+    }
+    ```
+  - **`prefs`** — a flat map of browser preferences, routed through
+    `setExperimentalOption("prefs", ...)` for Chrome/Edge, or
+    `addPreference(key, value)` per entry for Firefox (not supported for
+    `safari`). Do **not** rely on nesting `prefs` inside a raw
+    `goog:chromeOptions`/`moz:firefoxOptions` block under "anything else"
+    below — Selenium regenerates those vendor blocks from its own internal
+    state on serialization, so anything merged in under those specific keys
+    is silently dropped. The top-level `prefs` key exists precisely to avoid
+    that trap.
+  - **Anything else** — merged as-is via Selenium's `MutableCapabilities`.
+    This works for genuine top-level W3C capabilities, e.g.:
+    ```json
+    "capabilities": {
+      "pageLoadStrategy": "eager"
+    }
+    ```
+
+### Sample configurations
+
+Enable notifications for Chrome/Edge (skips the permission prompt):
+
+```json
+{
+  "url": "https://www.google.com",
+  "browser": "chrome",
+  "waitTimeInSeconds": 20,
+  "browser_binary_path": "",
+  "capabilities": {
+    "prefs": {
+      "profile.default_content_setting_values.notifications": 1
+    }
+  }
+}
+```
+
+Set a custom user agent — Chrome/Edge (Chromium) take it as a launch flag,
+Firefox takes it as a preference:
+
+```json
+{
+  "url": "https://www.google.com",
+  "browser": "chrome",
+  "waitTimeInSeconds": 20,
+  "browser_binary_path": "",
+  "capabilities": {
+    "args": ["--user-agent=MyCompany-BrowserStartupTest/1.0"]
+  }
+}
+```
+
+```json
+{
+  "url": "https://www.google.com",
+  "browser": "firefox",
+  "waitTimeInSeconds": 20,
+  "browser_binary_path": "",
+  "capabilities": {
+    "prefs": {
+      "general.useragent.override": "MyCompany-BrowserStartupTest/1.0"
+    }
+  }
+}
+```
+
+`args` and `prefs` can be combined in the same `capabilities` object.
+
+### Session control window
+
+Once the page loads, a small always-on-top Swing window appears in the
+bottom-right corner of the screen with a countdown and a **Close Session**
+button. The session ends — driver `quit()` and cleanup — on whichever happens
+first:
+
+- `waitTimeInSeconds` (from `app.properties.json`) elapses, or
+- the user clicks **Close Session** (or the window's own close box, which
+  does the same thing).
+
+Both paths run through the same cleanup code and are logged, e.g. "Session
+closed manually via the 'Close Session' button." vs. "Wait time elapsed;
+closing session automatically." This requires a display (`java.desktop`,
+part of a normal desktop JRE) — it isn't meant for headless/CI environments.
 
 ## Running from source (development)
 
@@ -99,3 +193,5 @@ Uncomment and point it at the desired JDK home; the script then runs
   versions reject the DevTools websocket handshake used by Selenium 4.3.0
   without it.
 - Chrome/Edge load `about:blank` first, then navigate to the configured URL.
+- Every run logs page title, current URL, window size, window handle, page
+  source length, and `navigator.userAgent` after the page loads.

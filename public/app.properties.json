@@ -2,5 +2,6 @@
   "url": "https://www.google.com",
   "browser": "chrome",
   "waitTimeInSeconds": 10,
-  "browser_binary_path": ""
+  "browser_binary_path": "",
+  "capabilities": null
 }
